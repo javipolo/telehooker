@@ -1,0 +1,20 @@
+wormlyalert={
+  "isrecovery": 1,
+  "hostid": 123,
+  "name": "juanito.com",
+  "downtime": 10,
+  "alertlevel": 3,
+  "alertlevel_name": "high",
+  "failedsensors": [
+    {
+      "sensorid": 33,
+      "message": "http a la mierda",
+      "type": "HTTP"
+    },
+    {
+      "sensorid": 69,
+      "message": "otra cosa rota",
+      "type": "VAYAKK"
+    }
+  ]
+}
