@@ -11,8 +11,10 @@ import (
 	"github.com/javipolo/telehooker/notify"
 )
 
-var service = "wormly"
-var postParameter = "wormlyalert"
+const (
+	service       = "wormly"
+	postParameter = "wormlyalert"
+)
 
 type failedSensor struct {
 	Type     string `json:"type"`
@@ -30,7 +32,30 @@ type wormlyAlert struct {
 	FailedSensors  []failedSensor `json:"failedsensors"`
 }
 
-func parseData(r *http.Request) (string, wormlyAlert) {
+// JSONResponse is a json string
+type JSONResponse string
+
+// Compact returns a compacted JSONResponse
+func (data JSONResponse) Compact() JSONResponse {
+	compactData := bytes.Buffer{}
+	err := json.Compact(&compactData, []byte(data))
+
+	if err == nil {
+		data = JSONResponse(compactData.String())
+	}
+
+	return JSONResponse(data)
+}
+
+func (alert *wormlyAlert) hydrate(data JSONResponse) {
+	err := json.Unmarshal([]byte(data), &alert)
+
+	if err != nil {
+		panic(err)
+	}
+}
+
+func parseData(r *http.Request) JSONResponse {
 	err := r.ParseForm()
 	if err != nil {
 		panic(err)
@@ -39,20 +64,7 @@ func parseData(r *http.Request) (string, wormlyAlert) {
 	if data == "" {
 		panic(fmt.Sprintf("No data on POST parameter %s", postParameter))
 	}
-	alert := wormlyAlert{}
-
-	err = json.Unmarshal([]byte(data), &alert)
-	if err != nil {
-		panic(err)
-	}
-
-	compactData := bytes.Buffer{}
-	err = json.Compact(&compactData, []byte(data))
-	if err == nil {
-		data = compactData.String()
-	}
-
-	return data, alert
+	return JSONResponse(data)
 }
 
 func createMessage(a wormlyAlert) string {
@@ -84,9 +96,13 @@ func debugStuff(w http.ResponseWriter, d string, a wormlyAlert, m string) {
 
 // Wormly HTTP Handler
 func Wormly(w http.ResponseWriter, r *http.Request) {
-	data, alert := parseData(r)
-	log.Printf("EVENT %s: %s", service, data)
+	data := parseData(r)
+	alert := wormlyAlert{}
+	alert.hydrate(data)
+
+	log.Printf("EVENT %s: %s", service, data.Compact())
+
 	msg := createMessage(alert)
 	notify.Send(service, msg)
-	debugStuff(w, data, alert, msg)
+	debugStuff(w, string(data), alert, msg)
 }

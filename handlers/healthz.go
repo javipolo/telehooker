@@ -7,5 +7,10 @@ import (
 
 // Healthz check
 func Healthz(w http.ResponseWriter, r *http.Request) {
-	fmt.Fprintf(w, "%s OK", r.URL.Path)
+	responseBody := fmt.Sprintf("%s OK", r.URL.Path)
+	_, err := w.Write([]byte(responseBody))
+
+	if err != nil {
+		panic(err)
+	}
 }
